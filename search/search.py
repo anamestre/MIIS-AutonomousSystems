@@ -87,7 +87,21 @@ def depthFirstSearch(problem):
     print "Start's successors:", problem.getSuccessors(problem.getStartState())
     """
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    stack = util.Stack()
+    state = (problem.getStartState(), [])
+    stack.push(state)
+    visited = []
+
+    while(not stack.isEmpty()):
+        (current_state, path) = stack.pop()
+        if problem.isGoalState(current_state):
+            return path
+
+        if current_state not in visited:
+            visited.append(current_state)
+            for suc, action, _ in problem.getSuccessors(current_state):
+                stack.push((suc, path + [action]))
+    return []
 
 def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
@@ -95,28 +109,21 @@ def breadthFirstSearch(problem):
     """
     Problem has: getStartState, getSuccessors, isGoalState
     """
-
     queue = util.Queue()
-    state = problem.getStartState()
+    state = (problem.getStartState(), [])
     queue.push(state)
     visited = []
 
     while(not queue.isEmpty()):
-        current_state, path = queue.pop()
-        if current_state.isGoalState():
+        (current_state, path) = queue.pop()
+        if problem.isGoalState(current_state):
             return path
 
         if current_state not in visited:
             visited.append(current_state)
-
-        for suc, suc_path in problem.getSuccessors(current_state):
-            if suc not visited:
-                visited.append(suc)
-                queue.push(suc, path + suc_path)
+            for suc, action, _ in problem.getSuccessors(current_state):
+                queue.push((suc, path + [action]))
     return []
-
-
-    #util.raiseNotDefined()
 
 
 def uniformCostSearch(problem):
