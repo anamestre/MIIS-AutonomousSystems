@@ -143,7 +143,8 @@ def uniformCostSearch(problem):
             visited.append(current_state)
             for suc, action, c in problem.getSuccessors(current_state):
                 suc_cost = cost + c
-                queue.update((suc, path + [action], suc_cost),suc_cost)
+                new_state = (suc, path + [action], suc_cost)
+                queue.update(new_state, suc_cost)
     return []
 
 def nullHeuristic(state, problem=None):
