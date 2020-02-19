@@ -28,11 +28,31 @@ def print_solution(solution):
 
 def compute_solution(sat_assignment, variables, size):
     solution = []
+
     # TODO: Map the SAT assignment back into a Sudoku solution
     return solution
 
 def v(i, j, d): 
-    return 81 * (i - 1) + 9 * (j - 1) + d
+    return 81 * (i) + 9 * (j) + d # ojo al -1 q n esta
+
+
+def check_row(coords, starty, finishy,clauses):
+    for x , y in coords:
+        for s in range(starty, finishy):
+            for k in range(1,10):
+                clauses.append([-v(x, y, k), -v(x, s, k)])
+
+def check_col(coords, startx, finishx, clauses):
+    for x , y in coords:
+        for s in range(startx, finishx):
+            for k in range(1,10):
+                clauses.append([-v(x, y, k), -v(s, y, k)]) # no por estar en la mateixa fila el mateix numero K
+
+def check_box(coords, startx, starty, clauses):
+    check_row(coords, starty, starty + 3, clauses) #el +3 es per anarse movent dins del lbloc de 3, qe acabara a la posicio indicada +3.
+    check_col(coords, startx, startx + 3, clauses)
+
+
 
 
 def generate_theory(board, verbose):
@@ -41,12 +61,19 @@ def generate_theory(board, verbose):
     clauses = []
     variables = {}
     
-    for x, y in board.all_coordinates():
-        for k in range(1, 10):
-            for kp in range(k, 10):
-                clauses.append([-v(x, y, k), -v(x, y, kp)])
+    for x, y in board.all_coordinates(): # per a cada coordenada de la board
+        for k in range(1, 10): # per a cada valor possible que pot agafar
+            for kp in range(k + 1, 10): #per cada valor possible que pot agafar. no contemplem l'1 perq vols mirar que a partir del seguent no hi hagui cap numero igual, pq l'1 ja hi pot ser
+                clauses.append([-v(x, y, k), -v(x, y, kp)]) # per les coordenades x ,y no hi poden haver numeros diferents a k. cada posicio pot tenir max 1 valor. i no diferent al que hi ha a k.
 
-    # TODO
+    for x in range (0,9):
+        check_row([(x,y) for y in range(0,9)], 0, 9, clauses)#clauses rows chek, que el valor no estigui repetit mateixa fila
+        check_col([(y,x) for y in range(0,9)], 0, 9, clauses) #clauses cols, que el valor no estigui repetit mateixa col
+
+   #box 3x3
+    for x in 0,3,6: # per cada blocs de 3
+        for y in 0,3,6:
+            check_box([((x + k % 3), (y + k // 3)) for k in range(0, 9)], x, y,clauses)  # clauses rows, modul i divisio per mouret dins de cada bloc de 3
 
     return clauses, variables, size
 
