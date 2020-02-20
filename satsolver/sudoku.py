@@ -28,30 +28,44 @@ def print_solution(solution):
 
 def compute_solution(sat_assignment, variables, size):
     solution = []
+    for x in range(0, 9):
+        for y in range(0, 9):
+            for k in range(1, 10):
+                val = v(x, y, k)
+                if(sat_assignment[val]):
+                    solution.append(k)
+                    break
+            
 
     # TODO: Map the SAT assignment back into a Sudoku solution
     return solution
 
 def v(i, j, d): 
-    return 81 * (i) + 9 * (j) + d # ojo al -1 q n esta
+    return 81 * (i) + 9 * (j) + d
+
+def get_value(i, j, sol):
+    for d in range(1, 10):
+        if v(i, j, d) in sol:
+            return d
 
 
 def check_row(coords, starty, finishy,clauses):
     for x , y in coords:
         for s in range(starty, finishy):
-            for k in range(1,10):
-                clauses.append([-v(x, y, k), -v(x, s, k)])
+            if s != y:
+                for k in range(1,10):
+                    clauses.append([-v(x, y, k), -v(x, s, k)])
 
 def check_col(coords, startx, finishx, clauses):
     for x , y in coords:
         for s in range(startx, finishx):
-            for k in range(1,10):
-                clauses.append([-v(x, y, k), -v(s, y, k)]) # no por estar en la mateixa fila el mateix numero K
+            if s != x:
+                for k in range(1,10):
+                    clauses.append([-v(x, y, k), -v(s, y, k)]) # no por estar en la mateixa fila el mateix numero K
 
 def check_box(coords, startx, starty, clauses):
     check_row(coords, starty, starty + 3, clauses) #el +3 es per anarse movent dins del lbloc de 3, qe acabara a la posicio indicada +3.
     check_col(coords, startx, startx + 3, clauses)
-
 
 
 
@@ -62,12 +76,17 @@ def generate_theory(board, verbose):
     variables = {}
     
     for x, y in board.all_coordinates(): # per a cada coordenada de la board
-        for k in range(1, 10): # per a cada valor possible que pot agafar
-            for kp in range(k + 1, 10): #per cada valor possible que pot agafar. no contemplem l'1 perq vols mirar que a partir del seguent no hi hagui cap numero igual, pq l'1 ja hi pot ser
-                clauses.append([-v(x, y, k), -v(x, y, kp)]) # per les coordenades x ,y no hi poden haver numeros diferents a k. cada posicio pot tenir max 1 valor. i no diferent al que hi ha a k.
+        val = board.value(x, y)
+        clauses.append([v(x, y, z) for z in range(1, 10)])
+        if val == 0:
+            for k in range(1, 10): # per a cada valor possible que pot agafar
+                for kp in range(k + 1, 10): #per cada valor possible que pot agafar. no contemplem l'1 perq vols mirar que a partir del seguent no hi hagui cap numero igual, pq l'1 ja hi pot ser
+                    clauses.append([-v(x, y, k), -v(x, y, kp)]) # per les coordenades x ,y no hi poden haver numeros diferents a k. cada posicio pot tenir max 1 valor. i no diferent al que hi ha a k.
+        else:
+            clauses.append([v(x, y, val)])
 
     for x in range (0,9):
-        check_row([(x,y) for y in range(0,9)], 0, 9, clauses)#clauses rows chek, que el valor no estigui repetit mateixa fila
+        check_row([(x,y) for y in range(0,9)], 0, 9, clauses) #clauses rows chek, que el valor no estigui repetit mateixa fila
         check_col([(y,x) for y in range(0,9)], 0, 9, clauses) #clauses cols, que el valor no estigui repetit mateixa col
 
    #box 3x3
