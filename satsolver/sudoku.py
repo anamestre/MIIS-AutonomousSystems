@@ -31,42 +31,42 @@ def compute_solution(sat_assignment, variables, size):
     for x in range(0, 9):
         for y in range(0, 9):
             for k in range(1, 10):
-                val = v(x, y, k)
+                val = var(x, y, k)
+                # If there's a value on our solution that corresponds to our
+                # "base 9" transformation, then we can know the value of that
+                # position of the sudoku.
                 if(sat_assignment[val]):
                     solution.append(k)
                     break
-            
-
-    # TODO: Map the SAT assignment back into a Sudoku solution
     return solution
 
-def v(i, j, d): 
-    return 81 * (i) + 9 * (j) + d
+# This transforms our position (x, y) with value k into one single value.
+def var(x, y, k): 
+    return 81 * x + 9 * y + k
 
-def get_value(i, j, sol):
-    for d in range(1, 10):
-        if v(i, j, d) in sol:
-            return d
-
-
+# We write clauses so there is not such K repeated on every row.
 def check_row(coords, starty, finishy,clauses):
     for x , y in coords:
         for s in range(starty, finishy):
-            if s != y:
+            if s > y:
                 for k in range(1,10):
-                    clauses.append([-v(x, y, k), -v(x, s, k)])
+                    clauses.append([-var(x, y, k), -var(x, s, k)])
 
+# We write clauses so there is not such K repeated on every col.
 def check_col(coords, startx, finishx, clauses):
     for x , y in coords:
         for s in range(startx, finishx):
-            if s != x:
+            if s > x:
                 for k in range(1,10):
-                    clauses.append([-v(x, y, k), -v(s, y, k)]) # no por estar en la mateixa fila el mateix numero K
+                    clauses.append([-var(x, y, k), -var(s, y, k)])
 
-def check_box(coords, startx, starty, clauses):
-    check_row(coords, starty, starty + 3, clauses) #el +3 es per anarse movent dins del lbloc de 3, qe acabara a la posicio indicada +3.
-    check_col(coords, startx, startx + 3, clauses)
-
+# We write clauses so there is not such K repeated on every 3x3 box.
+def check_box(coords, clauses):
+    for x, y in coords:
+        for x_, y_ in coords:
+            for k in range(1, 10):
+                if (x == x_ and y_ > y) or x_ > x:
+                    clauses.append([-var(x, y, k), -var(x_, y_, k)])
 
 
 def generate_theory(board, verbose):
@@ -75,24 +75,26 @@ def generate_theory(board, verbose):
     clauses = []
     variables = {}
     
-    for x, y in board.all_coordinates(): # per a cada coordenada de la board
+    for x, y in board.all_coordinates():
         val = board.value(x, y)
-        clauses.append([v(x, y, z) for z in range(1, 10)])
         if val == 0:
-            for k in range(1, 10): # per a cada valor possible que pot agafar
-                for kp in range(k + 1, 10): #per cada valor possible que pot agafar. no contemplem l'1 perq vols mirar que a partir del seguent no hi hagui cap numero igual, pq l'1 ja hi pot ser
-                    clauses.append([-v(x, y, k), -v(x, y, kp)]) # per les coordenades x ,y no hi poden haver numeros diferents a k. cada posicio pot tenir max 1 valor. i no diferent al que hi ha a k.
+            clauses.append([var(x, y, z) for z in range(1, 10)]) # We add all possible values
+            for k in range(1, 10): # for every possible value
+                for kp in range(k + 1, 10): 
+                    clauses.append([-var(x, y, k), -var(x, y, kp)]) # Only one value per coord
         else:
-            clauses.append([v(x, y, val)])
+            clauses.append([var(x, y, val)]) # We add the values we already have on our input
 
+    # Values cannot be repeated on a same row/column
     for x in range (0,9):
-        check_row([(x,y) for y in range(0,9)], 0, 9, clauses) #clauses rows chek, que el valor no estigui repetit mateixa fila
-        check_col([(y,x) for y in range(0,9)], 0, 9, clauses) #clauses cols, que el valor no estigui repetit mateixa col
+        check_row([(x,y) for y in range(0,9)], 0, 9, clauses)
+        check_col([(y,x) for y in range(0,9)], 0, 9, clauses)
 
-   #box 3x3
-    for x in 0,3,6: # per cada blocs de 3
+   # Values cannot be repeated on a same 3x3 block
+    for x in 0,3,6:
         for y in 0,3,6:
-            check_box([((x + k % 3), (y + k // 3)) for k in range(0, 9)], x, y, clauses)  # clauses rows, modul i divisio per mouret dins de cada bloc de 3
+             # this is how we move through a 3x3 block
+            check_box([((x + k % 3), (y + k // 3)) for k in range(0, 9)], clauses) 
 
     return clauses, variables, size
 
@@ -100,14 +102,16 @@ def generate_theory(board, verbose):
 def count_number_solutions(board, verbose=False):
     count = 0
     clauses, variables, size = generate_theory(board, verbose)
-    print(count_solutions(clauses, variables, size, count, verbose))
+    print("Number of solutions:", count_solutions(clauses, variables, size, count, verbose))
 
+# Recursively we count the number of solutions
 def count_solutions(clauses, variables, size, count, verbose):
     sol = solve_sat_problem(clauses, "theory.cnf", size, variables, verbose)
     if sol is None:
         return count
     else:
-        print(count)
+        # If we have found a solution, we negate that solution and add it as a clause and 
+        # launch again the satsolver adding that new clause.
         neg = negate(sol)
         if neg not in clauses:
             clauses.append(neg)
@@ -115,7 +119,7 @@ def count_solutions(clauses, variables, size, count, verbose):
             return count
         return count_solutions(clauses, variables, size, count + 1, verbose)
 
-
+# If a clause is "False" we turn it into "True" and if it is "True", we make it "False"
 def negate(clause):
     neg_clause = []
     for key in clause:
