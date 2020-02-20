@@ -92,17 +92,39 @@ def generate_theory(board, verbose):
    #box 3x3
     for x in 0,3,6: # per cada blocs de 3
         for y in 0,3,6:
-            check_box([((x + k % 3), (y + k // 3)) for k in range(0, 9)], x, y,clauses)  # clauses rows, modul i divisio per mouret dins de cada bloc de 3
+            check_box([((x + k % 3), (y + k // 3)) for k in range(0, 9)], x, y, clauses)  # clauses rows, modul i divisio per mouret dins de cada bloc de 3
 
     return clauses, variables, size
 
 
 def count_number_solutions(board, verbose=False):
     count = 0
+    clauses, variables, size = generate_theory(board, verbose)
+    print(count_solutions(clauses, variables, size, count, verbose))
 
-    # TODO
+def count_solutions(clauses, variables, size, count, verbose):
+    sol = solve_sat_problem(clauses, "theory.cnf", size, variables, verbose)
+    if sol is None:
+        return count
+    else:
+        print(count)
+        neg = negate(sol)
+        if neg not in clauses:
+            clauses.append(neg)
+        else:
+            return count
+        return count_solutions(clauses, variables, size, count + 1, verbose)
 
-    print(f'Number of solutions: {count}')
+
+def negate(clause):
+    neg_clause = []
+    for key in clause:
+        if key != 0:
+            if clause[key]:
+                neg_clause.append(-key)
+            else:
+                neg_clause.append(key)
+    return neg_clause
 
 
 def find_one_solution(board, verbose=False):
