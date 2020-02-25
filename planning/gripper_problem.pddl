@@ -1,0 +1,5 @@
+(define (problem gripper2)
+(:domain gripper)
+(:objects roomA roomB - room Ball1 Ball2 - ball)
+(:init (at-robot roomA) (free left) (free right) (at Ball1 roomA)(at Ball2 roomA))
+(:goal (and (at Ball1 roomB) (at Ball2 roomB))))
