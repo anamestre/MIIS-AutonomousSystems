@@ -9,7 +9,7 @@
 				 (haswall ?pos - position))
 	(:functions (num_teleports))
 	(:action goto
-		:parameters (?from - position ?to - position)
+		:parameters (?from ?to - position)
 		:precondition (and (at agent ?from) (not (hasbox ?to)) (next ?from ?to) (not (haswall ?to)))
 		:effect (and (at agent ?to) (not (at agent ?from))))
 	
