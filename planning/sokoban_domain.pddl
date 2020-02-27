@@ -1,14 +1,13 @@
 (define (domain sokoban)
-	(:requirements :adl :typing :fluents)
+	(:requirements :adl :typing)
 	(:types position)
 	(:constants agent)
-	;;(:functions (num_teleports))
-	
 	(:predicates (at ?elem ?pos)
 				 (hasbox ?pos - position)
 				 (next ?pos1 ?pos2 - position)
 				 (double_next ?pos1 ?pos2 - position)
 				 (haswall ?pos - position))
+	(:functions (num_teleports))
 	(:action goto
 		:parameters (?from - position ?to - position)
 		:precondition (and (at agent ?from) (not (hasbox ?to)) (next ?from ?to) (not (haswall ?to)))
