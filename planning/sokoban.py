@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-import sys
+import sys, os, time, subprocess
 
 
 def parse_arguments(argv):
@@ -80,35 +80,70 @@ def write_problem(board, output, name):
                 if(nextF < board.h):
                     pos_next = "pos_" + str(nextF) + "_" + str(col)
                     file.write("(next " + pos + " " + pos_next + ") \n")
-                    file.write("(next " + pos_next + " " + pos + ") \n")
+                    #file.write("(next " + pos_next + " " + pos + ") \n")
                     nextnextF = nextF + 1
                     if(nextnextF < board.h):
                         pos_next = "pos_" + str(nextnextF) + "_" + str(col)
                         file.write("(double_next " + pos + " " + pos_next + ") \n")
-                        file.write("(double_next " + pos_next + " " + pos + ") \n")
+                        #file.write("(double_next " + pos_next + " " + pos + ") \n")
                 if(nextC < board.w):
                     pos_next = "pos_" + str(fila) + "_" + str(nextC)
                     file.write("(next " + pos + " " + pos_next + ")\n")
-                    file.write("(next " + pos_next + " " + pos + ")\n")
+                    #file.write("(next " + pos_next + " " + pos + ")\n")
                     nextnextC = nextC + 1
                     if(nextnextC < board.w):
                         pos_next = "pos_" + str(fila) + "_" + str(nextnextC)
                         file.write("(double_next " + pos + " " + pos_next + ")\n")
-                        file.write("(double_next " + pos_next + " " + pos + ")\n")
+                        #file.write("(double_next " + pos_next + " " + pos + ")\n")
                 
                 if (fila, col) == board.player:
                     file.write("(at agent " + pos + ")\n")
         
-        file.write("(= (num_teleports) 0))\n" )
-        file.write("(:goal (and")
+        #file.write("(= (num_teleports) 0))\n" )
+        file.write(")\n (:goal (and")
         
         for (fila, col) in board.goals:
              pos = "pos_" + str(fila) + "_" + str(col)
              file.write("(hasbox " + pos + ") \n")
         file.write(")))")
-            
-                
+
+
+
+def position(pos):
+    return (int(pos[4]), int(pos[6]))
+
+def read_input(line):
+    # (pushbox pos_4_4 pos_4_5 pos_4_6)
+    elems = line.split()
+    if (elems[0] == "(pushbox"):
+        p0 = position(elems[1])
+        p1 = position(elems[2])
+        print("Push box from " + str(p0) + " to " + str(p1))
     
+    elif (elems[0] == "(goto"):
+        p0 = position(elems[1])
+        p1 = position(elems[2])
+        if p0[0] > p1[0]:
+            print("Move down from " + str(p0) + " to " + str(p1))
+        elif p0[0] < p1[0]:
+            print("Move up from " + str(p0) + " to " + str(p1))
+        else:
+            if p0[1] > p1[1]:
+                print("Move left from " + str(p0) + " to " + str(p1))
+            else: 
+                print("Move right from " + str(p0) + " to " + str(p1))
+    
+    elif (elems[0] == "(teleport"):
+        p0 = position(elems[1])
+        p1 = position(elems[2])
+        print("Teleport from " + str(p0) + " to " + str(p1))
+
+
+def parse_output(filename):
+    with open(filename, 'r') as f:
+        for line in f:
+            read_input(line)
+        
 
 
 def main(argv):
@@ -121,7 +156,28 @@ def main(argv):
     #  3. Invoke some classical planner to solve the generated instance.
     #  3. Check the output and print the plan into the screen in some readable form.
     
-    write_problem(board, "test.pddl", "box")    
+    write_problem(board, "output.pddl", "box")
+    cmd= "FD/fast-downward.py --plan-file myplan.txt --overall-time-limit 60  --alias seq-sat-lama-2011 sokoban_domain.pddl output.pddl"
+    #os.system(cmd)
+    
+    # For some reason, the --overall-time-limit 60 doesn't work. 
+    # Desperate times desperate measures
+    """while True:
+        time1 = time.time()
+        if (time1 - time0) > 5:
+            print("HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEY")
+            #cmd = "\x03"
+            #os.system(cmd)
+            serial.write('\x03')
+            break"""
+    p = subprocess.Popen(["FD/fast-downward.py", "--plan-file", "myplan.txt", "--alias", "seq-sat-lama-2011", "sokoban_domain.pddl", "output.pddl"])
+    try:
+        p.wait(60)
+    except subprocess.TimeoutExpired:
+        p.kill()
+
+    parse_output("myplan.txt.1")
+    os.remove("myplan.txt.1")
     
 
 
